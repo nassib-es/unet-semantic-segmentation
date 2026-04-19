@@ -99,8 +99,7 @@ def train(epochs=30, batch_size=8, lr=1e-4):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=3, factor=0.5, verbose=True
-    )
+        optimizer, patience=3, factor=0.5)
 
     best_iou = 0.0
     history  = {'train_loss': [], 'val_loss': [],
@@ -141,4 +140,4 @@ def train(epochs=30, batch_size=8, lr=1e-4):
 
 
 if __name__ == '__main__':
-    train(epochs=10, batch_size=8, lr=1e-4)
+    train(epochs=50, batch_size=8, lr=1e-4)
