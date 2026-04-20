@@ -57,10 +57,10 @@ class VOCDataset(Dataset):
     """
 
     def __init__(self, root='data', split='train',
-                 image_size=(256, 256)):
+             image_size=(256, 256), augment=False):
         self.image_size = image_size
+        self.augment    = augment
 
-        # Download dataset automatically
         self.dataset = VOCSegmentation(
             root=root,
             year='2012',
@@ -68,27 +68,50 @@ class VOCDataset(Dataset):
             download=True
         )
 
-        # Image transforms
+        # Base transforms
         self.img_transform = transforms.Compose([
             transforms.Resize(image_size),
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],  # ImageNet mean
-                std= [0.229, 0.224, 0.225]   # ImageNet std
+                mean=[0.485, 0.456, 0.406],
+                std= [0.229, 0.224, 0.225]
             )
         ])
 
-        # Mask transform — resize with NEAREST to preserve class labels
         self.mask_transform = transforms.Compose([
             transforms.Resize(image_size,
-                              interpolation=transforms.InterpolationMode.NEAREST),
+                            interpolation=transforms.InterpolationMode.NEAREST),
         ])
+
+        # Augmentation transforms — applied to both image and mask together
+        self.aug_transform = transforms.Compose([
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.1),
+            transforms.RandomRotation(degrees=15),
+        ])
+
+        # Color jitter — image only
+        self.color_jitter = transforms.ColorJitter(
+            brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1
+        )
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
         img, mask = self.dataset[idx]
+
+        if self.augment:
+            # Apply same spatial transform to both image and mask
+            seed = torch.randint(0, 2**32, (1,)).item()
+
+            torch.manual_seed(seed)
+            img  = self.aug_transform(img)
+            torch.manual_seed(seed)
+            mask = self.aug_transform(mask)
+
+            # Color jitter on image only
+            img = self.color_jitter(img)
 
         img  = self.img_transform(img)
         mask = self.mask_transform(mask)

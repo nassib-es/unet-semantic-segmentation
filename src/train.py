@@ -82,7 +82,7 @@ def train(epochs=30, batch_size=8, lr=1e-4):
     print(f"Device: {device}")
 
     # Dataset
-    full_dataset = VOCDataset(root='data', split='train')
+    full_dataset = VOCDataset(root='data', split='train', augment=True)
     val_size     = int(0.15 * len(full_dataset))
     train_size   = len(full_dataset) - val_size
     train_ds, val_ds = random_split(full_dataset, [train_size, val_size])
@@ -95,7 +95,13 @@ def train(epochs=30, batch_size=8, lr=1e-4):
     print(f"Train: {train_size} | Val: {val_size}")
 
     # Model
-    model     = UNet(in_channels=3, num_classes=21).to(device)
+    import segmentation_models_pytorch as smp
+    model = smp.Unet(
+        encoder_name    = "resnet50",
+        encoder_weights = "imagenet",
+        in_channels     = 3,
+        classes         = 21
+    ).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -130,7 +136,7 @@ def train(epochs=30, batch_size=8, lr=1e-4):
         if val_iou > best_iou:
             best_iou = val_iou
             os.makedirs('models', exist_ok=True)
-            torch.save(model.state_dict(), 'models/best_model.pth')
+            torch.save(model.state_dict(), 'models/best_model_resnet50.pth')
             print(f"  ✓ Saved best model (IoU: {best_iou:.4f})")
 
     # Save history
@@ -140,4 +146,4 @@ def train(epochs=30, batch_size=8, lr=1e-4):
 
 
 if __name__ == '__main__':
-    train(epochs=50, batch_size=8, lr=1e-4)
+    train(epochs=60, batch_size=8, lr=1e-4)
